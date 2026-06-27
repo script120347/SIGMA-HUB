@@ -1,96 +1,596 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google</title>
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MiIgaGVpZ2h0PSI5MiIgdmlld0JveD0iMCAwIDkyIDkyIj48cGF0aCBkPSJNNDYgMTBjLTE5LjkgMC0zNiAxNi4xLTM2IDM2czE2LjEgMzYgMzYgMzZjMTkuOSAwIDM2LTE2LjEgMzYtMzZTNjUuOSAxMCA0NiAxMHptMCA2NGMtMTUuNSAwLTI4LTEyLjUtMjgtMjhzMTIuNS0yOCAyOC0yOCAyOCAxMi41IDI4IDI4LTEyLjUgMjgtMjggMjh6bTAtNDhjLTEwLjUgMC0xOSA4LjUtMTkgMTlzOC41IDE5IDE5IDE5IDE5LTguNSAxOS0xOS04LjUtMTktMTktMTl6bTAgMzBjLTYuMSAwLTExLTQuOS0xMS0xMXM0LjktMTEgMTEtMTEgMTEgNC45IDExIDExLTQuOSAxMS0xMSAxMXoiIGZpbGw9IiNkNGIwZmYiLz48L3N2Zz4=">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: #0a0015;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #d4b0ff;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #auth-box {
+            background: rgba(21,0,37,0.8);
+            border: 2px solid #7a3aaa;
+            border-radius: 24px;
+            padding: 40px 50px;
+            width: 360px;
+            max-width: 90vw;
+            box-shadow: 0 0 60px rgba(160,112,208,0.1);
+        }
+        #auth-box h2 { text-align: center; color: #d4b0ff; margin-bottom: 20px; font-size: 26px; letter-spacing: 2px; }
+        #auth-box h2 span { color: #a070d0; }
+        #auth-box input {
+            width: 100%; padding: 12px 16px; border-radius: 12px;
+            border: 2px solid rgba(122,58,170,0.3);
+            background: rgba(10,0,21,0.5); color: #d4b0ff; font-size: 14px;
+            outline: none; margin-bottom: 12px;
+        }
+        #auth-box input:focus { border-color: #a070d0; }
+        #auth-box input::placeholder { color: #6a4a8a; }
+        #auth-box button {
+            width: 100%; padding: 12px; border-radius: 12px;
+            border: 2px solid rgba(122,58,170,0.3);
+            background: #150025; color: #d4b0ff; font-weight: 700;
+            font-size: 16px; cursor: pointer; transition: 0.15s; margin-bottom: 8px;
+        }
+        #auth-box button:hover { background: #1f0035; border-color: #a070d0; }
+        #auth-box .switch { text-align: center; margin-top: 10px; font-size: 13px; color: #6a4a8a; }
+        #auth-box .switch a { color: #a070d0; cursor: pointer; font-weight: 600; }
+        #auth-box .error { color: #ff6b8a; font-size: 13px; text-align: center; min-height: 20px; }
+        .hidden { display: none !important; }
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+        #chat {
+            display: none;
+            position: fixed;
+            inset: 20px;
+            background: rgba(10,0,21,0.8);
+            backdrop-filter: blur(20px);
+            border: 2px solid #7a3aaa;
+            border-radius: 28px;
+            padding: 20px;
+            flex-direction: column;
+        }
+        #chat.show { display: flex; }
+        #chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        #chat-header h2 { color: #d4b0ff; font-size: 20px; }
+        #chat-header h2 span { color: #a070d0; }
+        #chat-header .header-right { display: flex; align-items: center; gap: 12px; }
+        #chat-header .user-badge { color: #a070d0; font-weight: 600; font-size: 14px; }
+        #chat-header #logoutBtn {
+            background: transparent; border: none; color: #6a4a8a;
+            cursor: pointer; font-size: 12px; padding: 4px 10px; border-radius: 6px;
+        }
+        #chat-header #logoutBtn:hover { color: #ff6b8a; background: rgba(255,107,138,0.05); }
 
-// Middleware
-app.use(express.json());
-app.use(express.static('public'));
+        #chat-body { display: flex; flex: 1; overflow: hidden; gap: 16px; }
 
-// File paths
-const USERS_FILE = path.join(__dirname, 'users.json');
-const MESSAGES_FILE = path.join(__dirname, 'messages.json');
+        #members-sidebar {
+            width: 200px;
+            background: rgba(10,0,21,0.3);
+            border-radius: 16px;
+            padding: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            border: 1px solid rgba(122,58,170,0.08);
+        }
+        #members-sidebar h3 {
+            color: #6a4a8a; font-size: 11px; text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 10px;
+            border-bottom: 1px solid rgba(58,26,90,0.2); padding-bottom: 6px;
+        }
+        .member-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 8px; border-radius: 8px; margin: 2px 0;
+            font-size: 13px; transition: 0.15s; cursor: default;
+        }
+        .member-item:hover { background: rgba(160,112,208,0.06); }
+        .member-item .name.me { color: #7ac39b; }
+        .member-item .name.admin { color: #a070d0; font-weight: 700; }
+        .member-item .actions {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .member-item .actions button {
+            background: transparent; border: none; color: #6a4a8a;
+            cursor: pointer; font-size: 10px; padding: 2px 5px; border-radius: 4px;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+        .member-item .actions button.pm:hover { color: #7ac39b; }
+        .member-item .actions button.kick:hover { color: #ff6b8a; }
+        .member-item .actions button.delete:hover { color: #ff3333; }
 
-// ---- Helpers ----
-function readUsers() {
-    try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
-    catch { return {}; }
-}
-function writeUsers(users) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-function readMessages() {
-    try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')); }
-    catch { return []; }
-}
-function writeMessages(msgs) {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msgs, null, 2));
-}
+        #messages-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        #messages-container .chat-target {
+            color: #6a4a8a; font-size: 12px; margin-bottom: 6px; flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #messages-container .chat-target span { color: #a070d0; font-weight: 600; }
+        #messages-container .chat-target .back-btn {
+            background: transparent; border: 1px solid rgba(122,58,170,0.2);
+            color: #6a4a8a; padding: 2px 12px; border-radius: 12px;
+            font-size: 11px; cursor: pointer; transition: 0.15s; display: none;
+        }
+        #messages-container .chat-target .back-btn:hover { border-color: #a070d0; color: #a070d0; }
+        #messages-container .chat-target .back-btn.show { display: inline-block; }
+        #messages {
+            flex: 1; overflow-y: auto; background: rgba(10,0,21,0.3);
+            border-radius: 16px; padding: 12px;
+            border: 1px solid rgba(122,58,170,0.08); margin-bottom: 10px;
+        }
+        #messages .msg {
+            padding: 6px 12px; margin: 4px 0; border-radius: 10px;
+            background: rgba(21,0,37,0.4); border: 1px solid rgba(58,26,90,0.15);
+            word-wrap: break-word;
+        }
+        #messages .msg .user { color: #a070d0; font-weight: 700; }
+        #messages .msg .time { color: #6a4a8a; font-size: 0.6rem; margin-left: 8px; }
+        #messages .msg .text { margin-top: 2px; color: #e0d0f0; word-wrap: break-word; }
+        #messages .msg.dm {
+            border-color: rgba(160,112,208,0.3);
+            background: rgba(21,0,37,0.6);
+        }
+        #messages .msg.dm .user { color: #7ac39b; }
 
-// ---- Routes ----
-app.post('/api/register', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password required' });
+        .input-area { display: flex; gap: 8px; flex-shrink: 0; }
+        .input-area input {
+            flex: 1; padding: 10px 16px; border-radius: 30px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: rgba(10,0,21,0.4); color: #d4b0ff; outline: none;
+        }
+        .input-area input:focus { border-color: #a070d0; }
+        .input-area button {
+            padding: 10px 20px; border-radius: 30px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: #150025; color: #d4b0ff; font-weight: 700;
+            cursor: pointer; transition: 0.15s; flex-shrink: 0;
+        }
+        .input-area button:hover { background: #1f0035; border-color: #a070d0; }
+
+        .toast {
+            position: fixed; bottom: 30px; right: 30px;
+            background: rgba(21,0,37,0.9); backdrop-filter: blur(15px);
+            border: 2px solid #7a3aaa; padding: 14px 24px; border-radius: 16px;
+            color: #d4b0ff; font-size: 14px;
+            opacity: 0; transform: translateY(20px) scale(0.9);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none; z-index: 999; max-width: 400px;
+            box-shadow: 0 0 60px rgba(160,112,208,0.1);
+        }
+        .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+        .toast .toast-user { color: #a070d0; font-weight: 700; }
+        .toast .toast-text { color: #e0d0f0; }
+
+        .notif-dot {
+            display: inline-block; width: 8px; height: 8px;
+            background: #ff6b8a; border-radius: 50%; margin-left: 4px;
+            animation: pulseNotif 1s infinite;
+        }
+        @keyframes pulseNotif {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(10,0,21,0.2); }
+        ::-webkit-scrollbar-thumb { background: #7a3aaa; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-box">
+        <h2>Σ<span>HUB</span></h2>
+        <div id="loginBox">
+            <div class="error" id="loginError"></div>
+            <input type="text" id="loginUser" placeholder="Username">
+            <input type="password" id="loginPass" placeholder="Password">
+            <button id="loginBtn">Login</button>
+            <div class="switch">No account? <a id="showRegister">Register</a></div>
+        </div>
+        <div id="registerBox" class="hidden">
+            <div class="error" id="regError"></div>
+            <input type="text" id="regUser" placeholder="Username">
+            <input type="password" id="regPass" placeholder="Password">
+            <button id="registerBtn">Register</button>
+            <div class="switch">Have an account? <a id="showLogin">Login</a></div>
+        </div>
+    </div>
+
+    <div id="chat">
+        <div id="chat-header">
+            <h2>Σ<span>HUB</span> Chat</h2>
+            <div class="header-right">
+                <span class="user-badge" id="chatUserDisplay">User</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+        <div id="chat-body">
+            <div id="members-sidebar">
+                <h3>Members</h3>
+                <div id="memberList"></div>
+            </div>
+            <div id="messages-container">
+                <div class="chat-target" id="chatTarget">
+                    <span id="chatTargetLabel">💬 Public chat</span>
+                    <button class="back-btn" id="backToPublicBtn">← Public</button>
+                </div>
+                <div id="messages">
+                    <div class="msg"><span class="user">System</span><span class="time">now</span><div class="text">Welcome! Admin can delete or kick users.</div></div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="msgInput" placeholder="Type a message...">
+                    <button id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    // ============================================================
+    // SERVER-SIDE CHAT WITH ADMIN CONTROLS
+    // All data is shared across all users via the server.
+    // ============================================================
+
+    var API_URL = window.location.origin + '/api';
+    var SESSION_KEY = 'sigma_session';
+
+    function getSession() {
+        return localStorage.getItem(SESSION_KEY) || null;
     }
-    if (username.length < 2 || password.length < 4) {
-        return res.status(400).json({ error: 'Invalid input' });
+    function setSession(u) {
+        localStorage.setItem(SESSION_KEY, u);
     }
-    const users = readUsers();
-    if (users[username]) {
-        return res.status(409).json({ error: 'Username already taken' });
+    function clearSession() {
+        localStorage.removeItem(SESSION_KEY);
     }
-    users[username] = password;
-    writeUsers(users);
-    console.log('✅ Registered:', username);
-    res.json({ message: 'Registration successful' });
-});
 
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password required' });
+    // --- API CALLS ---
+    function registerUser(username, password) {
+        return fetch(API_URL + '/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        }).then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); return d; });
     }
-    const users = readUsers();
-    if (!users[username]) {
-        return res.status(401).json({ error: 'User not found' });
+
+    function loginUser(username, password) {
+        return fetch(API_URL + '/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        }).then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); return d; });
     }
-    if (users[username] !== password) {
-        return res.status(401).json({ error: 'Incorrect password' });
+
+    function sendMessage(username, text, to) {
+        return fetch(API_URL + '/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, text, to: to || 'public' })
+        }).then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); return d; });
     }
-    console.log('✅ Logged in:', username);
-    res.json({ message: 'Login successful', username });
-});
 
-app.post('/api/messages', (req, res) => {
-    const { username, text, to } = req.body;
-    if (!username || !text) {
-        return res.status(400).json({ error: 'Username and text required' });
+    function getMessages() {
+        return fetch(API_URL + '/messages').then(r => r.json());
     }
-    const msgs = readMessages();
-    msgs.push({
-        user: username,
-        text: text,
-        time: new Date().toLocaleTimeString(),
-        to: to || 'public'
-    });
-    if (msgs.length > 500) msgs.splice(0, msgs.length - 500);
-    writeMessages(msgs);
-    res.json({ message: 'Message sent' });
-});
 
-app.get('/api/messages', (req, res) => {
-    res.json(readMessages());
-});
+    function getUsers() {
+        return fetch(API_URL + '/users').then(r => r.json());
+    }
 
-app.get('/api/users', (req, res) => {
-    const users = readUsers();
-    res.json(Object.keys(users));
-});
+    function deleteUser(username) {
+        return fetch(API_URL + '/admin/users/' + username, { method: 'DELETE' })
+            .then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); return d; });
+    }
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+    function kickUser(username) {
+        return fetch(API_URL + '/admin/kick/' + username, { method: 'DELETE' })
+            .then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); return d; });
+    }
+
+    // --- DOM ---
+    var loginBox = document.getElementById('loginBox');
+    var registerBox = document.getElementById('registerBox');
+    var loginUser = document.getElementById('loginUser');
+    var loginPass = document.getElementById('loginPass');
+    var loginBtn = document.getElementById('loginBtn');
+    var loginError = document.getElementById('loginError');
+    var regUser = document.getElementById('regUser');
+    var regPass = document.getElementById('regPass');
+    var registerBtn = document.getElementById('registerBtn');
+    var showRegister = document.getElementById('showRegister');
+    var showLogin = document.getElementById('showLogin');
+    var authBox = document.getElementById('auth-box');
+    var chatDiv = document.getElementById('chat');
+    var messagesDiv = document.getElementById('messages');
+    var msgInput = document.getElementById('msgInput');
+    var sendBtn = document.getElementById('sendBtn');
+    var logoutBtn = document.getElementById('logoutBtn');
+    var toast = document.getElementById('toast');
+    var chatUserDisplay = document.getElementById('chatUserDisplay');
+    var memberList = document.getElementById('memberList');
+    var chatTargetLabel = document.getElementById('chatTargetLabel');
+    var backToPublicBtn = document.getElementById('backToPublicBtn');
+    var currentUser = '';
+    var currentDM = null;
+    var messageInterval = null;
+    var toastTimeout;
+
+    function showToast(msg, user) {
+        if (user) {
+            toast.innerHTML = '<span class="toast-user">' + escapeHtml(user) + '</span> <span class="toast-text">' + escapeHtml(msg) + '</span>';
+        } else {
+            toast.textContent = msg;
+        }
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // --- AUTH ---
+    showRegister.onclick = function(e) {
+        e.preventDefault();
+        loginBox.classList.add('hidden');
+        registerBox.classList.remove('hidden');
+        loginError.textContent = '';
+        regError.textContent = '';
+    };
+
+    showLogin.onclick = function(e) {
+        e.preventDefault();
+        registerBox.classList.add('hidden');
+        loginBox.classList.remove('hidden');
+        loginError.textContent = '';
+        regError.textContent = '';
+    };
+
+    registerBtn.onclick = function() {
+        var user = regUser.value.trim();
+        var pass = regPass.value.trim();
+        regError.textContent = '';
+        if (!user || !pass) { regError.textContent = 'Fill all fields'; return; }
+        if (user.length < 2) { regError.textContent = 'Min 2 chars'; return; }
+        if (pass.length < 4) { regError.textContent = 'Min 4 chars'; return; }
+        registerUser(user, pass)
+            .then(function() {
+                regError.textContent = '';
+                showToast('Account created! Login now.');
+                registerBox.classList.add('hidden');
+                loginBox.classList.remove('hidden');
+                loginUser.value = user;
+                loginPass.value = '';
+            })
+            .catch(function(err) {
+                regError.textContent = '❌ ' + err.message;
+            });
+    };
+
+    loginBtn.onclick = function() {
+        var user = loginUser.value.trim();
+        var pass = loginPass.value.trim();
+        loginError.textContent = '';
+        if (!user || !pass) { loginError.textContent = 'Fill all fields'; return; }
+        loginUser(user, pass)
+            .then(function() {
+                setSession(user);
+                loginError.textContent = '';
+                showToast('Welcome, ' + user);
+                enterChat(user);
+            })
+            .catch(function(err) {
+                loginError.textContent = '❌ ' + err.message;
+            });
+    };
+
+    loginPass.onkeydown = function(e) { if (e.key === 'Enter') loginBtn.click(); };
+    regPass.onkeydown = function(e) { if (e.key === 'Enter') registerBtn.click(); };
+    msgInput.onkeydown = function(e) { if (e.key === 'Enter') sendBtn.click(); };
+
+    // --- CHAT ---
+    function isAdmin(username) { return username === 'admin'; }
+
+    function getDisplayMessages(all) {
+        if (currentDM) {
+            return all.filter(function(m) {
+                return (m.user === currentUser && m.to === currentDM) ||
+                       (m.user === currentDM && m.to === currentUser);
+            });
+        }
+        return all.filter(function(m) {
+            return !m.to || m.to === 'public';
+        });
+    }
+
+    function renderMessages() {
+        getMessages().then(function(all) {
+            var msgs = getDisplayMessages(all);
+            if (msgs.length === 0) {
+                messagesDiv.innerHTML = '<div class="msg"><span class="user">System</span><span class="time">now</span><div class="text">' + (currentDM ? 'No messages with ' + currentDM + ' yet.' : 'No public messages yet. Say hello!') + '</div></div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < msgs.length; i++) {
+                var m = msgs[i];
+                var isDM = m.to && m.to !== 'public';
+                html += '<div class="msg' + (isDM ? ' dm' : '') + '">';
+                html += '<span class="user">' + escapeHtml(m.user) + '</span>';
+                html += '<span class="time">' + escapeHtml(m.time) + '</span>';
+                html += '<div class="text">' + escapeHtml(m.text) + '</div>';
+                html += '</div>';
+            }
+            messagesDiv.innerHTML = html;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }).catch(function() {});
+    }
+
+    function renderMembers() {
+        getUsers().then(function(usernames) {
+            if (!usernames.includes('admin')) usernames.push('admin');
+            usernames.sort(function(a, b) {
+                if (a === 'admin') return -1;
+                if (b === 'admin') return 1;
+                if (a === currentUser) return -1;
+                if (b === currentUser) return 1;
+                return a.localeCompare(b);
+            });
+            var html = '';
+            for (var i = 0; i < usernames.length; i++) {
+                var u = usernames[i];
+                var isMe = (u === currentUser);
+                var isAdminUser = (u === 'admin');
+                if (isAdminUser && !isAdmin(currentUser) && !isMe) continue;
+                var showAdminControls = isAdmin(currentUser) && !isAdminUser && !isMe;
+                html += '<div class="member-item">';
+                html += '<span class="name ' + (isMe ? 'me' : '') + (isAdminUser ? ' admin' : '') + '">' + (isAdminUser ? '👑 ' : '') + escapeHtml(u) + (isMe ? ' (you)' : '') + '</span>';
+                html += '<div class="actions">';
+                if (!isMe) {
+                    html += '<button class="pm" onclick="startDM(\'' + escapeHtml(u) + '\')">💬</button>';
+                }
+                if (showAdminControls) {
+                    html += '<button class="kick" onclick="kickUser(\'' + escapeHtml(u) + '\')">🚫 Kick</button>';
+                    html += '<button class="delete" onclick="deleteUser(\'' + escapeHtml(u) + '\')">🗑️ Delete</button>';
+                }
+                html += '</div></div>';
+            }
+            memberList.innerHTML = html || '<div style="color:#6a4a8a; font-size:12px;">No users</div>';
+        }).catch(function() {});
+    }
+
+    // --- ADMIN CONTROLS ---
+    window.kickUser = function(username) {
+        if (!isAdmin(currentUser)) return;
+        if (username === 'admin') { showToast('Cannot kick admin'); return; }
+        if (!confirm('Kick ' + username + '? This will clear all their messages.')) return;
+        kickUser(username)
+            .then(function() {
+                renderMessages();
+                renderMembers();
+                showToast('✅ ' + username + ' kicked (messages cleared)');
+            })
+            .catch(function(err) {
+                showToast('❌ ' + err.message);
+            });
+    };
+
+    window.deleteUser = function(username) {
+        if (!isAdmin(currentUser)) return;
+        if (username === 'admin') { showToast('Cannot delete admin'); return; }
+        if (!confirm('PERMANENTLY DELETE account: ' + username + '? This cannot be undone.')) return;
+        deleteUser(username)
+            .then(function() {
+                if (currentDM === username) goPublic();
+                renderMembers();
+                renderMessages();
+                showToast('🗑️ Account "' + username + '" deleted');
+            })
+            .catch(function(err) {
+                showToast('❌ ' + err.message);
+            });
+    };
+
+    // --- DM ---
+    window.startDM = function(username) {
+        if (username === currentUser) { showToast('Cannot DM yourself'); return; }
+        currentDM = username;
+        chatTargetLabel.textContent = '💬 DM with ' + username;
+        backToPublicBtn.classList.add('show');
+        renderMessages();
+        renderMembers();
+        showToast('Private chat with ' + username);
+    };
+
+    function goPublic() {
+        currentDM = null;
+        chatTargetLabel.textContent = '💬 Public chat';
+        backToPublicBtn.classList.remove('show');
+        renderMessages();
+        renderMembers();
+        showToast('Back to public chat');
+    }
+
+    backToPublicBtn.onclick = goPublic;
+
+    function sendMessageHandler() {
+        var text = msgInput.value.trim();
+        if (!text || !currentUser) return;
+        sendMessage(currentUser, text, currentDM)
+            .then(function() {
+                msgInput.value = '';
+                renderMessages();
+            })
+            .catch(function(err) {
+                showToast('❌ ' + err.message);
+            });
+    }
+
+    sendBtn.onclick = sendMessageHandler;
+
+    logoutBtn.onclick = function() {
+        if (confirm('Logout?')) {
+            clearSession();
+            currentUser = '';
+            currentDM = null;
+            if (messageInterval) clearInterval(messageInterval);
+            authBox.style.display = 'block';
+            chatDiv.classList.remove('show');
+            showToast('Logged out');
+        }
+    };
+
+    function enterChat(username) {
+        currentUser = username;
+        currentDM = null;
+        chatTargetLabel.textContent = '💬 Public chat';
+        backToPublicBtn.classList.remove('show');
+        authBox.style.display = 'none';
+        chatDiv.classList.add('show');
+        chatUserDisplay.textContent = username + (isAdmin(username) ? ' 👑' : '');
+        renderMessages();
+        renderMembers();
+        if (messageInterval) clearInterval(messageInterval);
+        messageInterval = setInterval(function() {
+            renderMessages();
+            renderMembers();
+        }, 2000);
+    }
+
+    // --- SESSION CHECK ---
+    (function() {
+        var session = getSession();
+        if (session) {
+            showToast('Welcome back, ' + session);
+            enterChat(session);
+            return;
+        }
+        authBox.style.display = 'block';
+        chatDiv.classList.remove('show');
+    })();
+
+    console.log('🔥 Server-side chat ready. Admin: admin / 123456');
+    </script>
+</body>
+</html>
