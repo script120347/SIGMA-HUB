@@ -6,20 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-
-// Serve index.html correctly
-app.get('/', (req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.use(express.static('public', {
-    setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
-            res.setHeader('Content-Type', 'text/html');
-        }
-    }
-}));
+app.use(express.static('public'));
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
@@ -39,6 +26,7 @@ function writeMessages(msgs) {
     fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msgs, null, 2));
 }
 
+// --- Auth ---
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password || username.length < 2 || password.length < 4) {
@@ -46,38 +34,44 @@ app.post('/api/register', (req, res) => {
     }
     const users = readUsers();
     if (users[username]) {
-        return res.status(409).json({ error: 'Username already taken' });
+        return res.status(409).json({ error: 'Username taken' });
     }
     users[username] = password;
     writeUsers(users);
-    res.json({ message: 'Registration successful' });
+    res.json({ message: 'Registered!' });
 });
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password required' });
+        return res.status(400).json({ error: 'Missing fields' });
     }
     const users = readUsers();
     if (!users[username]) {
         return res.status(401).json({ error: 'User not found' });
     }
     if (users[username] !== password) {
-        return res.status(401).json({ error: 'Incorrect password' });
+        return res.status(401).json({ error: 'Wrong password' });
     }
-    res.json({ message: 'Login successful', username });
+    res.json({ message: 'Logged in!', username });
 });
 
+// --- Messages ---
 app.post('/api/messages', (req, res) => {
     const { username, text, to } = req.body;
     if (!username || !text) {
-        return res.status(400).json({ error: 'Username and text required' });
+        return res.status(400).json({ error: 'Missing data' });
     }
     const msgs = readMessages();
-    msgs.push({ user: username, text, time: new Date().toLocaleTimeString(), to: to || 'public' });
+    msgs.push({
+        user: username,
+        text: text,
+        time: new Date().toLocaleTimeString(),
+        to: to || 'public'
+    });
     if (msgs.length > 500) msgs.splice(0, msgs.length - 500);
     writeMessages(msgs);
-    res.json({ message: 'Message sent' });
+    res.json({ message: 'Sent!' });
 });
 
 app.get('/api/messages', (req, res) => {
@@ -89,11 +83,37 @@ app.get('/api/users', (req, res) => {
     res.json(Object.keys(users));
 });
 
-app.get('*', (req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// --- Admin: Delete user ---
+app.delete('/api/admin/users/:username', (req, res) => {
+    const { username } = req.params;
+    if (username === 'admin') {
+        return res.status(403).json({ error: 'Cannot delete admin' });
+    }
+    let users = readUsers();
+    if (!users[username]) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    delete users[username];
+    writeUsers(users);
+    // Also remove their messages
+    let msgs = readMessages();
+    msgs = msgs.filter(m => m.user !== username);
+    writeMessages(msgs);
+    res.json({ message: 'User deleted' });
+});
+
+// --- Admin: Kick user (clear messages) ---
+app.delete('/api/admin/kick/:username', (req, res) => {
+    const { username } = req.params;
+    if (username === 'admin') {
+        return res.status(403).json({ error: 'Cannot kick admin' });
+    }
+    let msgs = readMessages();
+    msgs = msgs.filter(m => m.user !== username);
+    writeMessages(msgs);
+    res.json({ message: 'User kicked (messages cleared)' });
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
 });
