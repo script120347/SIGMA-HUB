@@ -3,680 +3,1050 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google</title>
+    <title>Sigma Hub Chat</title>
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MiIgaGVpZ2h0PSI5MiIgdmlld0JveD0iMCAwIDkyIDkyIj48cGF0aCBkPSJNNDYgMTBjLTE5LjkgMC0zNiAxNi4xLTM2IDM2czE2LjEgMzYgMzYgMzZjMTkuOSAwIDM2LTE2LjEgMzYtMzZTNjUuOSAxMCA0NiAxMHptMCA2NGMtMTUuNSAwLTI4LTEyLjUtMjgtMjhzMTIuNS0yOCAyOC0yOCAyOCAxMi41IDI4IDI4LTEyLjUgMjgtMjggMjh6bTAtNDhjLTEwLjUgMC0xOSA4LjUtMTkgMTlzOC41IDE5IDE5IDE5IDE5LTguNSAxOS0xOS04LjUtMTktMTktMTl6bTAgMzBjLTYuMSAwLTExLTQuOS0xMS0xMXM0LjktMTEgMTEtMTEgMTEgNC45IDExIDExLTQuOSAxMS0xMSAxMXoiIGZpbGw9IiNkNGIwZmYiLz48L3N2Zz4=">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Segoe UI',Arial,sans-serif; background:#0a0015; color:#d4b0ff; height:100vh; overflow:hidden; }
-        #googleBar {
-            position:fixed; top:0; left:0; right:0; z-index:100;
-            background:#0a0015; padding:6px 20px;
-            display:flex; align-items:center; justify-content:space-between;
-            border-bottom:2px solid #7a3aaa;
-            height:50px;
+        body {
+            background: #0a0015;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #d4b0ff;
+            height: 100vh;
+            overflow: hidden;
         }
-        #googleBar .logo {
-            display:flex; align-items:center; gap:8px;
-            font-size:22px; font-weight:500;
+        #stars-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
         }
-        #googleBar .logo .google-logo {
-            display:flex;
-            align-items:center;
-            gap:2px;
-            font-size:24px;
-            font-weight:500;
-            font-family: 'Product Sans', 'Segoe UI', Arial, sans-serif;
-            letter-spacing: -0.5px;
+        @keyframes borderWalk {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        .google-logo .g { color: #4285F4; }
-        .google-logo .o1 { color: #EA4335; }
-        .google-logo .o2 { color: #FBBC05; }
-        .google-logo .l { color: #34A853; }
-        .google-logo .e { color: #EA4335; }
-        .google-logo span { font-weight: 500; }
-        #googleBar .nav a {
-            color:#9a7aba; text-decoration:none; font-size:13px; margin-left:16px;
-            padding:4px 8px; border-radius:4px;
-            border:2px solid transparent;
-            transition:0.2s;
+        @keyframes borderGlow {
+            0% { opacity: 0.3; filter: hue-rotate(0deg); }
+            50% { opacity: 0.8; filter: hue-rotate(180deg); }
+            100% { opacity: 0.3; filter: hue-rotate(360deg); }
         }
-        #googleBar .nav a:hover { background:#1a0a2e; color:#d4b0ff; border-color:#7a3aaa; }
-        #googleBar .nav a.active { color:#d4b0ff; border-color:#a070d0; }
-        #fakeContent {
-            margin-top:50px; padding:20px; height:calc(100vh - 50px);
-            overflow-y:auto; background:#0a0015;
+        .living-border { position: relative; }
+        .living-border::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 28px;
+            padding: 3px;
+            background: linear-gradient(90deg, #7a3aaa, #a070d0, #c090e0, #a070d0, #7a3aaa);
+            background-size: 300% 100%;
+            animation: borderWalk 3s ease-in-out infinite, borderGlow 4s ease-in-out infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: 2;
         }
-        .search-box { max-width:600px; margin:30px auto; text-align:center; }
-        .search-box input {
-            width:100%; padding:14px 20px; border-radius:30px;
-            background:#150025; color:#d4b0ff;
-            font-size:16px; outline:none;
-            border:2px solid #7a3aaa;
-            box-shadow: 0 0 20px rgba(160,112,208,0.1);
-            transition:0.3s;
+        #app {
+            position: fixed;
+            inset: 20px;
+            background: rgba(10,0,21,0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 100px rgba(160,112,208,0.08);
+            z-index: 1;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
-        .search-box input:focus { border-color:#c090e0; box-shadow: 0 0 40px rgba(160,112,208,0.25); }
-        .search-box input::placeholder { color:#6a4a8a; }
-        .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-top:20px; }
-        .card {
-            background:#150025; border-radius:12px; padding:16px; text-align:center;
-            border:2px solid #7a3aaa; cursor:pointer; transition:0.3s;
-            box-shadow: 0 0 15px rgba(160,112,208,0.05);
+        #app.show { opacity: 1; }
+        #app.living-border::before { border-radius: 28px; }
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 2px solid rgba(122,58,170,0.15);
+            flex-shrink: 0;
+            background: rgba(10,0,21,0.2);
+            z-index: 1;
         }
-        .card:hover { background:#1f0035; transform:translateY(-2px); border-color:#c090e0; box-shadow: 0 0 30px rgba(160,112,208,0.15); }
-        .card .icon { font-size:32px; margin-bottom:6px; }
-        .card .title { color:#d4b0ff; font-weight:600; font-size:14px; }
-        .card .desc { color:#7a5a9a; font-size:11px; }
-        #sigmaOverlay {
-            position:fixed; inset:0; z-index:200;
-            background:#0a0015; display:none;
-            flex-direction:column;
+        #header .left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        #sigmaOverlay.show { display:flex; }
-        #sigmaIframe {
-            flex:1; width:100%; border:2px solid #7a3aaa; background:#0a0015;
-            box-shadow: inset 0 0 60px rgba(160,112,208,0.05);
+        #spinning-logo {
+            width: 32px;
+            height: 32px;
+            animation: spinLogo 4s linear infinite;
+            cursor: pointer;
+            filter: drop-shadow(0 0 15px rgba(160,112,208,0.2));
+            flex-shrink: 0;
         }
-        .taskbar {
-            position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-            display:none; align-items:center; gap:4px;
-            padding:8px 18px; background:rgba(10,0,21,0.9);
-            backdrop-filter:blur(18px); border:2px solid #7a3aaa;
-            border-radius:18px; z-index:300;
-            box-shadow: 0 0 40px rgba(160,112,208,0.1);
+        @keyframes spinLogo {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.08); }
+            100% { transform: rotate(360deg) scale(1); }
         }
-        .taskbar.show { display:flex; }
-        .taskbar-btn {
-            width:42px; height:42px; border-radius:13px; border:2px solid transparent;
-            background:transparent; color:#6a4a8a; font-size:16px;
-            cursor:pointer; transition:0.2s;
-            display:flex; align-items:center; justify-content:center;
-            position:relative;
+        #spinning-logo img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
         }
-        .taskbar-btn:hover { background:rgba(160,112,208,0.08); color:#b090d0; border-color:#7a3aaa; }
-        .taskbar-btn.active { background:rgba(160,112,208,0.12); color:#c0a0e0; border-color:#a070d0; }
-        .taskbar-btn.active::after {
-            content:""; position:absolute; bottom:4px; left:50%;
-            width:12px; height:3px; border-radius:999px;
-            background:#a070d0; transform:translateX(-50%);
-            box-shadow: 0 0 15px rgba(160,112,208,0.5);
+        #header .logo {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #a070d0, #d4b0ff, #a070d0);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerLogo 3s ease-in-out infinite;
         }
-        .taskbar-divider { width:1px; height:24px; background:rgba(160,112,208,0.3); margin:0 2px; }
-        #loginOverlay {
-            position:fixed; inset:0; z-index:400;
-            background:rgba(5,0,10,0.96); backdrop-filter:blur(12px);
-            display:flex; align-items:center; justify-content:center;
+        @keyframes shimmerLogo {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        .login-box {
-            background:#0a0015; border:2px solid #7a3aaa;
-            border-radius:18px; padding:40px 50px; max-width:380px; width:100%;
-            box-shadow: 0 0 60px rgba(160,112,208,0.1);
+        .logo span { font-weight: 300; -webkit-text-fill-color: #6a4a8a; }
+        #header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .login-box h2 { color:#d4b0ff; text-align:center; margin-bottom:20px; }
-        .login-box input {
-            width:100%; padding:14px 18px; border-radius:12px;
-            border:2px solid #7a3aaa; background:rgba(10,0,21,0.6);
-            color:#d4b0ff; font-size:14px; outline:none; margin-bottom:12px;
-            transition:0.3s;
-            box-shadow: 0 0 15px rgba(160,112,208,0.05);
+        #header-right .user-badge {
+            color: #a070d0;
+            font-weight: 600;
+            font-size: 12px;
         }
-        .login-box input:focus { border-color:#c090e0; box-shadow: 0 0 30px rgba(160,112,208,0.2); }
-        .login-box input::placeholder { color:#6a4a8a; }
-        .login-box button {
-            width:100%; padding:14px; border:2px solid #7a3aaa;
-            border-radius:12px; background:#150025;
-            color:#d4b0ff; font-size:16px; font-weight:700;
-            cursor:pointer; transition:0.3s;
-            box-shadow: 0 0 20px rgba(160,112,208,0.05);
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #7ac39b;
+            margin-right: 6px;
+            animation: pulseDot 1.5s infinite;
         }
-        .login-box button:hover { background:#1f0035; border-color:#c090e0; box-shadow: 0 0 40px rgba(160,112,208,0.15); }
-        .login-box .switch { text-align:center; margin-top:16px; font-size:13px; color:#6a4a8a; }
-        .login-box .switch a { color:#a070d0; cursor:pointer; font-weight:600; border-bottom:2px solid transparent; }
-        .login-box .switch a:hover { border-color:#a070d0; }
-        .login-box .error { color:#ff6b8a; font-size:12px; text-align:center; min-height:20px; }
-        .hidden { display:none !important; }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            z-index: 1;
+        }
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 16px 12px 16px;
+            min-width: 0;
+        }
+        #chat-container #messages {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(10,0,21,0.25);
+            border-radius: 16px;
+            padding: 10px 12px;
+            border: 1px solid rgba(122,58,170,0.1);
+            margin-bottom: 8px;
+        }
+        #chat-container #messages .msg {
+            padding: 6px 12px;
+            margin: 4px 0;
+            border-radius: 10px;
+            background: rgba(21,0,37,0.4);
+            border: 1px solid rgba(58,26,90,0.15);
+            word-wrap: break-word;
+            animation: msgPop 0.15s ease;
+        }
+        @keyframes msgPop {
+            0% { opacity: 0; transform: scale(0.95) translateY(-3px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        #chat-container #messages .msg .user {
+            color: #a070d0;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        #chat-container #messages .msg .time {
+            color: #6a4a8a;
+            font-size: 0.55rem;
+            margin-left: 6px;
+        }
+        #chat-container #messages .msg .text {
+            margin-top: 2px;
+            color: #e0d0f0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        #chat-container .input-area {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        #chat-container .input-area input {
+            flex: 1;
+            padding: 8px 14px;
+            border-radius: 30px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: rgba(10,0,21,0.4);
+            color: #d4b0ff;
+            outline: none;
+            font-size: 13px;
+            transition: 0.15s;
+        }
+        #chat-container .input-area input:focus {
+            border-color: #a070d0;
+            box-shadow: 0 0 15px rgba(160,112,208,0.06);
+        }
+        #chat-container .input-area input::placeholder { color: #6a4a8a; }
+        #chat-container .input-area button {
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: #150025;
+            color: #d4b0ff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        #chat-container .input-area button:hover {
+            background: #1f0035;
+            border-color: #a070d0;
+        }
+        #members-sidebar {
+            width: 160px;
+            border-left: 1px solid rgba(122,58,170,0.08);
+            padding: 10px 8px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            background: rgba(10,0,21,0.08);
+        }
+        #members-sidebar h3 {
+            color: #6a4a8a;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(58,26,90,0.1);
+            padding-bottom: 4px;
+        }
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 6px;
+            border-radius: 6px;
+            margin: 2px 0;
+            font-size: 11px;
+            transition: 0.1s;
+        }
+        .member-item:hover { background: rgba(160,112,208,0.04); }
+        .member-item .name.admin { color: #a070d0; font-weight: 700; }
+        .member-item .name.me { color: #7ac39b; }
+        .member-item .actions button {
+            background: transparent;
+            border: none;
+            color: #6a4a8a;
+            cursor: pointer;
+            font-size: 9px;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .member-item .actions button.pm:hover { color: #7ac39b; }
+        .member-item .actions button.kick:hover { color: #ff6b8a; }
+        .member-item .actions button.delete:hover { color: #ff3333; }
+        .admin-panel {
+            display: none;
+            background: rgba(10,0,21,0.4);
+            border-radius: 10px;
+            padding: 8px;
+            margin-top: 6px;
+            border: 1px solid rgba(160,112,208,0.08);
+        }
+        .admin-panel.show { display: block; }
+        .admin-panel h4 {
+            color: #a070d0;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        .admin-panel .user-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 6px;
+            font-size: 10px;
+            color: #b090d0;
+            border-bottom: 1px solid rgba(58,26,90,0.08);
+        }
+        .admin-panel .user-row .pass { color: #6a4a8a; font-family: monospace; }
+        #adminToggle {
+            background: transparent;
+            border: none;
+            color: #6a4a8a;
+            cursor: pointer;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        #adminToggle:hover { background: rgba(160,112,208,0.06); color: #a070d0; }
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(5,0,10,0.92);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #auth-overlay.hidden { display: none; }
+        #auth-box {
+            background: rgba(21,0,37,0.8);
+            border-radius: 24px;
+            padding: 28px 36px;
+            width: 340px;
+            max-width: 90vw;
+            position: relative;
+            z-index: 1;
+        }
+        #auth-box.living-border::before { border-radius: 24px; }
+        #auth-box h2 {
+            text-align: center;
+            color: #d4b0ff;
+            margin-bottom: 16px;
+            font-size: 22px;
+            letter-spacing: 2px;
+        }
+        #auth-box h2 span { color: #a070d0; }
+        #auth-box input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: rgba(10,0,21,0.4);
+            color: #d4b0ff;
+            font-size: 13px;
+            outline: none;
+            margin-bottom: 10px;
+            transition: 0.15s;
+        }
+        #auth-box input:focus { border-color: #a070d0; }
+        #auth-box input::placeholder { color: #6a4a8a; }
+        #auth-box button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid rgba(122,58,170,0.2);
+            background: #150025;
+            color: #d4b0ff;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        #auth-box button:hover { background: #1f0035; border-color: #a070d0; }
+        #auth-box .switch {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #6a4a8a;
+        }
+        #auth-box .switch a {
+            color: #a070d0;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        #auth-box .switch a:hover { transform: translateX(3px); }
+        #auth-box .error {
+            color: #ff6b8a;
+            font-size: 12px;
+            text-align: center;
+            min-height: 16px;
+        }
+        .hidden { display: none !important; }
+        .slide-switch {
+            animation: slideSwitch 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes slideSwitch {
+            0% { opacity: 0; transform: translateX(-15px) scale(0.95); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .slide-switch-right {
+            animation: slideSwitchRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes slideSwitchRight {
+            0% { opacity: 0; transform: translateX(15px) scale(0.95); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        #revisionFlash {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: #0a0015;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #revisionFlash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #revisionFlash svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
         .toast {
-            position:fixed; right:16px; bottom:80px; color:#d4b0ff;
-            padding:.6rem 1rem; border-radius:12px;
-            opacity:0; transform:translateY(10px);
-            transition:opacity .18s ease, transform .18s ease;
-            z-index:9999; pointer-events:none;
-            background:#150025; border:2px solid #7a3aaa;
-            max-width:320px; font-size:13px;
-            box-shadow: 0 0 30px rgba(160,112,208,0.1);
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(21,0,37,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(122,58,170,0.15);
+            padding: 6px 16px;
+            border-radius: 12px;
+            color: #d4b0ff;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+            z-index: 999;
         }
-        .toast.show { opacity:1; transform:none; }
-        #unlockBtn {
-            background:#150025; color:#d4b0ff; border:2px solid #7a3aaa;
-            padding:12px 32px; border-radius:30px; font-weight:700; cursor:pointer;
-            margin-top:10px; font-size:16px;
-            transition:0.3s;
-            box-shadow: 0 0 20px rgba(160,112,208,0.05);
+        .toast.show { opacity: 1; }
+        #saved-accounts {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            background: rgba(10,0,21,0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(122,58,170,0.15);
+            border-radius: 12px;
+            padding: 6px 12px;
+            max-width: 200px;
+            font-size: 11px;
+            color: #6a4a8a;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
         }
-        #unlockBtn:hover { background:#1f0035; border-color:#c090e0; box-shadow: 0 0 40px rgba(160,112,208,0.15); }
+        #saved-accounts:hover {
+            border-color: rgba(160,112,208,0.3);
+            background: rgba(10,0,21,0.85);
+        }
+        #saved-accounts .badge {
+            background: #a070d0;
+            color: #0a0015;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 10px;
+        }
+        #saved-accounts .list {
+            display: none;
+            position: absolute;
+            bottom: 32px;
+            right: 0;
+            background: rgba(10,0,21,0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(122,58,170,0.15);
+            border-radius: 10px;
+            padding: 6px 10px;
+            min-width: 120px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        #saved-accounts:hover .list,
+        #saved-accounts .list:hover {
+            display: block;
+        }
+        #saved-accounts .list .acc {
+            padding: 3px 6px;
+            color: #d4b0ff;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(58,26,90,0.08);
+            white-space: nowrap;
+        }
+        #saved-accounts .list .acc:last-child { border-bottom: none; }
+        #saved-accounts .list .acc .del {
+            color: #ff6b8a;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 10px;
+        }
+        #saved-accounts .list .acc .del:hover { color: #ff3333; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: rgba(10,0,21,0.2); }
+        ::-webkit-scrollbar-thumb { background: #7a3aaa; border-radius: 10px; }
     </style>
 </head>
 <body>
-<header id="googleBar">
-    <div class="logo">
-        <div class="google-logo">
-            <span class="g">G</span>
-            <span class="o1">o</span>
-            <span class="o2">o</span>
-            <span class="o2">g</span>
-            <span class="l">l</span>
-            <span class="e">e</span>
+
+    <canvas id="stars-canvas"></canvas>
+
+    <!-- REVISION FLASH -->
+    <div id="revisionFlash">
+        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <foreignObject width="100%" height="100%">
+                <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+                    <head>
+                        <script>(function(){const XHTML_NS="http://www.w3.org/1999/xhtml";const root=document.querySelector("foreignObject").firstElementChild;const head=root.querySelector("head");const body=root.querySelector("body");const originalCreateElement=document.createElement.bind(document);const originalCreateElementNS=document.createElementNS.bind(document);Object.defineProperty(document,"head",{get(){return head},configurable:true});Object.defineProperty(document,"body",{get(){return body},configurable:true});Object.defineProperty(document,"documentElement",{get(){return root},configurable:true});document.createElement=function(tagName,options){if(typeof tagName==="string"){return originalCreateElementNS(XHTML_NS,tagName,options)}return originalCreateElement(tagName,options)};document.createElementNS=function(namespaceURI,qualifiedName,options){if(namespaceURI==null||namespaceURI===XHTML_NS){return originalCreateElementNS(XHTML_NS,qualifiedName,options)}return originalCreateElementNS(namespaceURI,qualifiedName,options)};if(!location.hash){history.replaceState(history.state,"","#/");}})();</script>
+                        <style><![CDATA[html,body{margin:0;width:100%;height:100%;overflow:hidden}body{background:transparent}foreignObject{overflow:visible}]]></style>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <title>Riverbend Tutoring | After-School Coaching &amp; Test Prep</title>
+                        <meta name="description" content="Riverbend Tutoring runs weekly academic coaching, subject-focused lessons, and standardized test preparation for students in grades six through twelve across Portland and online nationwide." />
+                        <meta name="keywords" content="academic coaching, after school coaching, weekly tutoring, study skills coaching, executive function support, college prep, ACT prep, SAT prep, AP exam prep, homework help, online tutoring, in person tutoring, middle school tutoring, high school tutoring, K-12 tutoring, learning support, parent updates, learning differences, IEP support, 504 plan support, reading support, writing support, essay coaching, math coaching, science coaching, study planner, organizational coaching, test taking strategies, time management, school readiness, grade level support, private tutor portland, tutoring portland oregon, online tutoring pacific time, intake call, learning profile, weekly check ins, study routines, family consultations" />
+                        <meta property="og:title" content="Riverbend Tutoring | After-School Coaching &amp; Test Prep" />
+                        <meta property="og:description" content="Riverbend Tutoring runs weekly academic coaching, subject-focused lessons, and standardized test preparation for students in grades six through twelve across Portland and online nationwide." />
+                        <meta property="og:url" content="https://21baseballacademy.com" />
+                        <meta property="og:type" content="website" />
+                        <meta property="og:site_name" content="Riverbend Tutoring" />
+                        <meta name="application-name" content="Riverbend Tutoring" />
+                        <link rel="icon" type="image/png" href="./branding/lucide.png" />
+                        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous" />
+                        <link rel="dns-prefetch" href="//cdn.jsdelivr.net" />
+                        <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-0VL3ZSBXDH"></script>
+                        <script>
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag() { dataLayer.push(arguments); }
+                            gtag("js", new Date());
+                            gtag("config", "G-0VL3ZSBXDH");
+                        </script>
+                        <script src="https://c.vipersfutbol.com/script.js" defer="defer"></script>
+                        <script src="./m1uy7/hor1y.js?v=mqd9w6nt"></script>
+                        <script src="./0w63d/htg4f.js?v=mqd9w6nt"></script>
+                        <script crossorigin="anonymous">(function(){import("./assets/5a5tdjwlds.js");})();</script>
+                        <link rel="stylesheet" crossorigin="anonymous" href="./assets/9aidcxrgt5.css" />
+                    </head>
+                    <body>
+                        <div id="root">
+                            <main aria-label="Riverbend Tutoring intake page loading" style="min-height: 100vh; display: grid; place-content: center; padding: 2rem; text-align: center; font-family: Inter, &quot;Segoe UI&quot;, sans-serif; color: #15201f; background: linear-gradient(180deg, #f4efe7 0%, #efe8dd 50%, #e9e1d2 100%);">
+                                <span style="display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(196, 106, 44, 0.12); color: #a3551f; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 1rem;">
+                                    After-school coaching and test prep, grades six through twelve
+                                </span>
+                                <h1 style="margin: 0 0 0.75rem; font-size: clamp(1.75rem, 3.5vw, 2.75rem); font-weight: 700; letter-spacing: -0.02em;">
+                                    Predictable study routines and better grades, starting this term.
+                                </h1>
+                                <p style="margin: 0; max-width: 56ch; color: #5e6e6b;">
+                                    Riverbend Tutoring opens every engagement with a free intake call, then settles into a steady weekly rhythm built around the student's actual coursework, deadlines, and study habits.
+                                </p>
+                            </main>
+                        </div>
+                        <div style="display: none" aria-hidden="true">
+                            <section><h2>Weekly Academic Coaching</h2><p>A standing weekly hour for students who need a dependable anchor in the schedule. Sessions blend planner check-ins, current homework, and quiet executive function coaching. Students leave with a clear plan for the week ahead, reducing missing assignments and last-minute scrambles. Designed for grades six through twelve and recalibrated at the start of each term.</p></section>
+                            <section><h2>Subject-Focused Tutoring</h2><p>Targeted lessons in a single subject for students with a specific class to shore up. Pre-algebra and Algebra I or II build fluency with expressions, graphing, and word problems. Geometry and precalculus revisit measurement, transformations, and functions. Science work draws on lab notes, models, and weekly quiz preparation across biology and chemistry. Writing support builds essay structure, evidence, and revision rhythm.</p></section>
+                            <section><h2>Standardized Test Preparation</h2><p>A structured ten to fourteen week arc for the ACT or SAT. Students start with a full diagnostic, move into targeted drills in the weakest sections, and complete four proctored-style practice exams with section review between each one. Score growth is tracked monthly and shared with parents in plain language. AP exam preparation follows the same shape, condensed around the subject calendar.</p></section>
+                            <section><h2>How We Begin</h2><p>Every family starts with a free twenty-minute intake call. We talk through current classes, schedule, recent report cards, and any accommodations such as IEP or 504 plans. From there, we match a tutor by subject, grade level, and learning style, with a no-cost rematch in the first three sessions if the fit is not right. First lessons usually happen within the same week as the intake conversation.</p></section>
+                            <section><h2>Families and Outcomes</h2><p>Parents receive a short written recap after every block of sessions. Each recap names the goal, the win, the sticking point, and the next focus area in plain English. Families notice steadier homework routines, fewer Sunday-evening arguments, and clearer self-advocacy at school. Across completed prep arcs the average score growth is five point four points on the ACT and one hundred eighty points on the SAT.</p></section>
+                        </div>
+                    </body>
+                </html>
+            </foreignObject>
+        </svg>
+    </div>
+
+    <!-- AUTH -->
+    <div id="auth-overlay">
+        <div id="auth-box" class="living-border">
+            <h2>Σ<span>HUB</span></h2>
+            <div id="loginBox">
+                <div class="error" id="loginError"></div>
+                <input type="text" id="loginUser" placeholder="Username">
+                <input type="password" id="loginPass" placeholder="Password">
+                <button id="loginBtn">Login</button>
+                <div class="switch">No account? <a id="showRegister">Register →</a></div>
+            </div>
+            <div id="registerBox" class="hidden">
+                <div class="error" id="regError"></div>
+                <input type="text" id="regUser" placeholder="Username">
+                <input type="password" id="regPass" placeholder="Password">
+                <button id="registerBtn">Register</button>
+                <div class="switch">Have an account? <a id="showLogin">← Login</a></div>
+            </div>
         </div>
     </div>
-    <div class="nav">
-        <a href="#" class="active">Home</a>
-        <a href="#">Revise</a>
-        <a href="#">Products</a>
-        <a href="#">Premium</a>
-        <a href="#">Tuition</a>
+
+    <!-- MAIN APP -->
+    <div id="app" class="living-border">
+        <div id="header">
+            <div class="left">
+                <div id="spinning-logo">
+                    <img src="https://i.ibb.co/HDnCTHWJ/tcc.png" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
+                </div>
+                <div class="logo">Σ<span>HUB</span> Chat</div>
+            </div>
+            <div id="header-right">
+                <span><span class="status-dot"></span><span class="user-badge" id="chatUserDisplay">User</span></span>
+                <button id="adminToggle">👑 Admin</button>
+                <button id="logoutBtn" style="background:transparent; border:none; color:#6a4a8a; cursor:pointer; font-size:10px; padding:2px 8px; border-radius:4px;">Logout</button>
+            </div>
+        </div>
+        <div id="main">
+            <div id="chat-container">
+                <div id="messages">
+                    <div class="msg"><span class="user">System</span><span class="time">now</span><div class="text">Welcome to Sigma Hub Chat!</div></div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="msgInput" placeholder="Type your message...">
+                    <button id="sendBtn">Send</button>
+                    <button id="pmBtn" style="padding:8px 12px; border-radius:30px; border:2px solid rgba(122,58,170,0.2); background:#150025; color:#d4b0ff; cursor:pointer; font-weight:700; flex-shrink:0; font-size:11px;">PM</button>
+                </div>
+                <div id="adminPanel" class="admin-panel">
+                    <h4>👑 Admin Panel - Users & Passwords</h4>
+                    <div id="userList"></div>
+                </div>
+            </div>
+            <div id="members-sidebar">
+                <h3>Members</h3>
+                <div id="memberList"></div>
+            </div>
+        </div>
     </div>
-</header>
-<main id="fakeContent">
-    <div class="search-box">
-        <input type="text" placeholder="Search Google or type a URL..." id="searchInput">
-        <button id="unlockBtn" style="margin-top:16px;">🚀 Launch Sigma Hub</button>
+
+    <!-- SAVED ACCOUNTS -->
+    <div id="saved-accounts">
+        <span>Saved</span>
+        <span class="badge" id="accCount">0</span>
+        <div class="list" id="accList"></div>
     </div>
-    <div class="grid">
-        <div class="card"><div class="icon">🧮</div><div class="title">Maths</div><div class="desc">KS3, GCSE, A Level</div></div>
-        <div class="card"><div class="icon">📚</div><div class="title">English</div><div class="desc">Lang & Lit</div></div>
-        <div class="card"><div class="icon">🔬</div><div class="title">Science</div><div class="desc">Combined & Triple</div></div>
-        <div class="card"><div class="icon">🎮</div><div class="title">Games</div><div class="desc">Quizzes & more</div></div>
-        <div class="card"><div class="icon">📊</div><div class="title">A Level</div><div class="desc">Maths, Bio, Chem</div></div>
-        <div class="card"><div class="icon">🏆</div><div class="title">Times Tables</div><div class="desc">Practice</div></div>
-    </div>
-</main>
-<div id="sigmaOverlay">
-    <iframe id="sigmaIframe" src="about:blank"></iframe>
-    <div class="taskbar" id="taskbar">
-        <button class="taskbar-btn active" data-src="home"><i class="fa-solid fa-house"></i></button>
-        <button class="taskbar-btn" data-src="study"><i class="fa-solid fa-gamepad"></i></button>
-        <button class="taskbar-btn" data-src="apps"><i class="fa-solid fa-th-large"></i></button>
-        <button class="taskbar-btn" data-src="chat"><i class="fa-solid fa-comment"></i></button>
-        <button class="taskbar-btn" data-src="browse"><i class="fa-solid fa-globe"></i></button>
-        <div class="taskbar-divider"></div>
-        <button class="taskbar-btn" data-src="settings"><i class="fa-solid fa-cog"></i></button>
-        <button class="taskbar-btn" id="cloakBtn"><i class="fa-solid fa-shield-halved"></i></button>
-        <button class="taskbar-btn" id="closeTaskbar"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-</div>
-<div id="loginOverlay">
-    <div class="login-box" id="loginBox">
-        <h2>🔐 Login</h2>
-        <div class="error" id="loginError"></div>
-        <input type="text" id="loginUser" placeholder="Username (3-24 chars)">
-        <input type="password" id="loginPass" placeholder="Password (6-24 chars)">
-        <button id="loginBtn">Login</button>
-        <div class="switch">No account? <a id="showRegister">Register</a></div>
-    </div>
-    <div class="login-box hidden" id="registerBox">
-        <h2>📝 Register</h2>
-        <div class="error" id="regError"></div>
-        <input type="text" id="regUser" placeholder="Username (3-24 chars)">
-        <input type="password" id="regPass" placeholder="Password (6-24 chars)">
-        <button id="registerBtn">Register</button>
-        <div class="switch">Have an account? <a id="showLogin">Login</a></div>
-    </div>
-</div>
-<div id="toast" class="toast"></div>
-<script>
-const API_URL = '';
-const USERS_KEY = 'sigma_users';
-const SESSION_KEY = 'sigma_session';
-function getUsers() {
-    try { 
-        const data = localStorage.getItem(USERS_KEY);
-        if (!data) return {};
-        return JSON.parse(data);
-    } catch(e) { 
-        console.error('getUsers error:', e);
-        return {}; 
-    }
-}
-function saveUsers(users) { 
-    try {
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        console.log('✅ Users saved:', users);
-        return true;
-    } catch(e) {
-        console.error('saveUsers error:', e);
-        return false;
-    }
-}
-function getSession() { 
-    return localStorage.getItem(SESSION_KEY) || null; 
-}
-function setSession(u) { 
-    localStorage.setItem(SESSION_KEY, u); 
-}
-function clearSession() { 
-    localStorage.removeItem(SESSION_KEY); 
-}
-(function initAccounts() {
-    let users = getUsers();
-    if (Object.keys(users).length === 0) {
-        users['admin'] = '123456';
-        saveUsers(users);
-        console.log('✅ Admin created: admin / 123456');
-    }
-})();
-const loginBox = document.getElementById('loginBox');
-const registerBox = document.getElementById('registerBox');
-const loginUser = document.getElementById('loginUser');
-const loginPass = document.getElementById('loginPass');
-const loginBtn = document.getElementById('loginBtn');
-const loginError = document.getElementById('loginError');
-const regUser = document.getElementById('regUser');
-const regPass = document.getElementById('regPass');
-const registerBtn = document.getElementById('registerBtn');
-const regError = document.getElementById('regError');
-const showRegister = document.getElementById('showRegister');
-const showLogin = document.getElementById('showLogin');
-const toast = document.getElementById('toast');
-const unlockBtn = document.getElementById('unlockBtn');
-const sigmaOverlay = document.getElementById('sigmaOverlay');
-const taskbar = document.getElementById('taskbar');
-const sigmaIframe = document.getElementById('sigmaIframe');
-let toastTimeout;
-function showToast(msg, time=2500) {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), time);
-}
-showRegister.addEventListener('click', function(e) {
-    e.preventDefault();
-    loginBox.classList.add('hidden');
-    registerBox.classList.remove('hidden');
-    loginError.textContent = '';
-    regError.textContent = '';
-    loginUser.value = '';
-    loginPass.value = '';
-});
-showLogin.addEventListener('click', function(e) {
-    e.preventDefault();
-    registerBox.classList.add('hidden');
-    loginBox.classList.remove('hidden');
-    loginError.textContent = '';
-    regError.textContent = '';
-    regUser.value = '';
-    regPass.value = '';
-});
-loginBtn.addEventListener('click', function() {
-    const user = loginUser.value.trim();
-    const pass = loginPass.value.trim();
-    loginError.textContent = '';
-    if (!user || !pass) { 
-        loginError.textContent = '⚠️ Fill all fields.'; 
-        return; 
-    }
-    if (user.length < 3 || user.length > 24) { 
-        loginError.textContent = '⚠️ Username 3-24 chars.'; 
-        return; 
-    }
-    if (pass.length < 6 || pass.length > 24) { 
-        loginError.textContent = '⚠️ Password 6-24 chars.'; 
-        return; 
-    }
-    const users = getUsers();
-    if (!users[user]) { 
-        loginError.textContent = '❌ User not found. Register first.'; 
-        return; 
-    }
-    if (users[user] !== pass) { 
-        loginError.textContent = '❌ Wrong password.'; 
-        return; 
-    }
-    setSession(user);
-    loginError.textContent = '';
-    document.getElementById('loginOverlay').style.display = 'none';
-    showToast('✅ Welcome, ' + user + '!');
-    goToSigmaHub();
-});
-registerBtn.addEventListener('click', function() {
-    const user = regUser.value.trim();
-    const pass = regPass.value.trim();
-    regError.textContent = '';
-    if (!user || !pass) { 
-        regError.textContent = '⚠️ Fill all fields.'; 
-        return; 
-    }
-    if (user.length < 3 || user.length > 24) { 
-        regError.textContent = '⚠️ Username 3-24 chars.'; 
-        return; 
-    }
-    if (pass.length < 6 || pass.length > 24) { 
-        regError.textContent = '⚠️ Password 6-24 chars.'; 
-        return; 
-    }
-    let users = getUsers();
-    if (users[user]) { 
-        regError.textContent = '❌ Username "' + user + '" taken.'; 
-        return; 
-    }
-    users[user] = pass;
-    if (!saveUsers(users)) {
-        regError.textContent = '❌ Save failed. Try again.';
-        return;
-    }
-    regError.textContent = '';
-    showToast('✅ Account "' + user + '" created! Login now.');
-    registerBox.classList.add('hidden');
-    loginBox.classList.remove('hidden');
-    loginUser.value = user;
-    loginPass.value = '';
-});
-loginPass.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') loginBtn.click();
-});
-regPass.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') registerBtn.click();
-});
-const PAGES = {};
-PAGES.home = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Hub</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:12px;}
-.logo{font-size:4.5rem;font-weight:900;color:#d4b0ff;letter-spacing:6px;text-shadow:0 0 60px rgba(160,112,208,0.15);}
-.logo span{color:#a070d0;font-weight:300;}
-.sub{color:#6a4a8a;font-size:1.1rem;letter-spacing:4px;}
-.status{color:#6a4a8a;font-size:0.9rem;}
-.glow{color:#3a1a5a;font-size:0.85rem;margin-top:10px;letter-spacing:2px;}
-</style>
-</head>
-<body>
-<div class="logo">Σ<span>HUB</span></div>
-<div class="sub">— sigma hub —</div>
-<div class="status">⚡ online: <span id="userCount">69420</span></div>
-<div class="glow">◆ ◆ ◆</div>
-</body>
-</html>
-`;
-PAGES.study = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Games</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:20px;text-align:center;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;max-width:800px;margin:20px auto;}
-.game{background:#150025;border-radius:12px;padding:20px;cursor:pointer;border:2px solid #7a3aaa;transition:0.3s;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-.game:hover{background:#1f0035;transform:scale(1.02);border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-.game .icon{font-size:2.5rem;}
-.game .name{font-size:0.9rem;color:#7a5a9a;margin-top:8px;}
-h1{color:#d4b0ff;}
-.sub{color:#6a4a8a;}
-</style>
-</head>
-<body>
-<h1>🎮 Sigma Games</h1>
-<p class="sub">Click to play (proxy)</p>
-<div class="grid">
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-snake')"><div class="icon">🐍</div><div class="name">Snake</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-2048')"><div class="icon">🧩</div><div class="name">2048</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-papas-pizzeria')"><div class="icon">🍕</div><div class="name">Papa's</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-run-3')"><div class="icon">🏃</div><div class="name">Run 3</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-chess')"><div class="icon">♟️</div><div class="name">Chess</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-temple-run-2')"><div class="icon">🏛️</div><div class="name">Temple Run</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-bloons-tower-defense-5')"><div class="icon">🎈</div><div class="name">Bloons TD</div></div>
-    <div class="game" onclick="loadGame('https://www.coolmathgames.com/0-fireboy-and-watergirl')"><div class="icon">🔥</div><div class="name">Fireboy</div></div>
-</div>
-<div id="gameFrame" style="margin-top:20px;min-height:100px;color:#6a4a8a;"></div>
-<script>
-function loadGame(url) {
-    const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-    document.getElementById('gameFrame').innerHTML = '<div style="color:#6a4a8a;">Loading...</div>';
-    fetch(proxy)
-        .then(res => res.text())
-        .then(html => {
-            html = html.replace(/<[^>]*(ads|advert|doubleclick|google-analytics|banner|popup|sponsor|promo)[^>]*>/gi, '');
-            document.getElementById('gameFrame').innerHTML = html || '<div style="color:#6a4a8a;">Game loaded</div>';
-        })
-        .catch(() => { document.getElementById('gameFrame').innerHTML = '<div style="color:#3a1a5a;">Error loading game</div>'; });
-}
-</script>
-</body>
-</html>
-`;
-PAGES.apps = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Apps</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:20px;text-align:center;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px;max-width:700px;margin:20px auto;}
-.app{background:#150025;border-radius:12px;padding:16px;cursor:pointer;border:2px solid #7a3aaa;transition:0.3s;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-.app:hover{background:#1f0035;transform:scale(1.02);border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-.app .icon{font-size:2rem;}
-.app .name{font-size:0.8rem;color:#7a5a9a;margin-top:6px;}
-h1{color:#d4b0ff;}
-.sub{color:#6a4a8a;}
-</style>
-</head>
-<body>
-<h1>📱 Sigma Apps</h1>
-<p class="sub">Quick tools</p>
-<div class="grid">
-    <div class="app" onclick="alert('Calculator coming soon')"><div class="icon">🧮</div><div class="name">Calculator</div></div>
-    <div class="app" onclick="alert('Notes coming soon')"><div class="icon">📝</div><div class="name">Notes</div></div>
-    <div class="app" onclick="alert('Timer coming soon')"><div class="icon">⏱️</div><div class="name">Timer</div></div>
-    <div class="app" onclick="alert('Weather coming soon')"><div class="icon">🌤️</div><div class="name">Weather</div></div>
-    <div class="app" onclick="alert('Maps coming soon')"><div class="icon">🗺️</div><div class="name">Maps</div></div>
-    <div class="app" onclick="alert('Music coming soon')"><div class="icon">🎵</div><div class="name">Music</div></div>
-</div>
-</body>
-</html>
-`;
-PAGES.chat = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Chat</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:20px;}
-.container{max-width:600px;margin:20px auto;}
-.chat-box{background:#150025;border-radius:12px;padding:16px;height:400px;overflow-y:auto;border:2px solid #7a3aaa;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-.msg{background:#0a0015;border-radius:8px;padding:8px 12px;margin:4px 0;border:1px solid #3a1a5a;}
-.msg .user{color:#a070d0;font-weight:bold;}
-.msg .time{color:#6a4a8a;font-size:0.7rem;margin-left:8px;}
-.input-area{display:flex;gap:8px;margin-top:12px;}
-.input-area input{flex:1;padding:10px 16px;border-radius:30px;border:2px solid #7a3aaa;background:#0a0015;color:#d4b0ff;outline:none;transition:0.3s;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-.input-area input:focus{border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-.input-area input::placeholder{color:#6a4a8a;}
-.input-area button{padding:10px 24px;border-radius:30px;border:2px solid #7a3aaa;background:#150025;color:#d4b0ff;font-weight:bold;cursor:pointer;transition:0.3s;}
-.input-area button:hover{background:#1f0035;border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-.status{color:#6a4a8a;text-align:center;margin-top:8px;font-size:0.85rem;}
-h1{color:#d4b0ff;}
-</style>
-</head>
-<body>
-<div class="container">
-    <h1>💬 Sigma Chat</h1>
-    <p class="status" id="status">🔴 Offline - Local storage</p>
-    <div class="chat-box" id="chatBox"></div>
-    <div class="input-area">
-        <input type="text" id="msgInput" placeholder="Type a message...">
-        <button onclick="send()">Send</button>
-    </div>
-</div>
-<script>
-const STORAGE_KEY="sigma_chat";
-function loadMessages(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
-function saveMessages(msgs){localStorage.setItem(STORAGE_KEY,JSON.stringify(msgs));}
-function render(){const msgs=loadMessages();const box=document.getElementById("chatBox");box.innerHTML=msgs.map(m=>'<div class="msg"><span class="user">'+m.user+'</span><span class="time">'+m.time+'</span><br>'+m.text+'</div>').join("");box.scrollTop=box.scrollHeight;}
-function send(){const input=document.getElementById("msgInput");const text=input.value.trim();if(!text)return;const msgs=loadMessages();const user="user"+Math.floor(Math.random()*1000);msgs.push({user:user,text:text,time:new Date().toLocaleTimeString()});if(msgs.length>100)msgs.splice(0,msgs.length-100);saveMessages(msgs);render();input.value="";}
-document.getElementById("msgInput").addEventListener("keydown",e=>{if(e.key==="Enter")send();});
-render();setInterval(render,2000);
-</script>
-</body>
-</html>
-`;
-PAGES.browse = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Browse</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:20px;}
-.container{max-width:800px;margin:40px auto;text-align:center;}
-input[type="text"]{width:80%;padding:12px 20px;border-radius:30px;border:2px solid #7a3aaa;background:#0a0015;color:#d4b0ff;font-size:16px;outline:none;transition:0.3s;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-input:focus{border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-input::placeholder{color:#6a4a8a;}
-button{padding:12px 30px;border-radius:30px;border:2px solid #7a3aaa;background:#150025;color:#d4b0ff;font-weight:bold;font-size:16px;cursor:pointer;margin-top:10px;transition:0.3s;}
-button:hover{background:#1f0035;border-color:#c090e0;box-shadow:0 0 30px rgba(160,112,208,0.15);}
-.result{margin-top:20px;background:#150025;border-radius:12px;padding:20px;min-height:200px;text-align:left;overflow:auto;max-height:400px;border:2px solid #7a3aaa;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-a{color:#a070d0;}
-</style>
-</head>
-<body>
-<div class="container">
-    <h1>🌐 Sigma Browse (Xylora Proxy)</h1>
-    <p style="color:#6a4a8a;">Enter any URL</p>
-    <input type="text" id="urlInput" placeholder="https://example.com" value="https://example.com">
-    <br><button onclick="go()">Go</button>
-    <div class="result" id="result">Enter a URL above</div>
-</div>
-<script>
-function go() {
-    let url = document.getElementById('urlInput').value.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-    const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-    document.getElementById('result').innerHTML = '<div style="color:#6a4a8a;">Loading via Xylora proxy...</div>';
-    fetch(proxy)
-        .then(res => res.text())
-        .then(html => {
-            html = html.replace(/<[^>]*(ads|advert|doubleclick|google-analytics|banner|popup|sponsor|promo)[^>]*>/gi, '');
-            document.getElementById('result').innerHTML = html || '<div style="color:#6a4a8a;">Empty response</div>';
-        })
-        .catch(() => { document.getElementById('result').innerHTML = '<div style="color:#3a1a5a;">Error loading page</div>'; });
-}
-document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') go(); });
-</script>
-</body>
-</html>
-`;
-PAGES.settings = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Sigma Settings</title>
-<style>
-body{background:#0a0015;color:#d4b0ff;font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:20px;text-align:center;}
-.container{max-width:400px;margin:40px auto;}
-.setting{background:#150025;border-radius:12px;padding:16px;margin:8px 0;border:2px solid #7a3aaa;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0 15px rgba(160,112,208,0.05);}
-.setting label{color:#d4b0ff;}
-.setting input[type="checkbox"]{accent-color:#a070d0;width:20px;height:20px;}
-h1{color:#d4b0ff;}
-.sub{color:#6a4a8a;}
-</style>
-</head>
-<body>
-<div class="container">
-    <h1>⚙️ Sigma Settings</h1>
-    <p class="sub">Preferences</p>
-    <div class="setting"><label>Dark Mode</label><input type="checkbox" checked></div>
-    <div class="setting"><label>Notifications</label><input type="checkbox"></div>
-    <div class="setting"><label>Auto-save</label><input type="checkbox" checked></div>
-    <div class="setting"><label>Proxy Mode</label><input type="checkbox"></div>
-    <p style="color:#6a4a8a;margin-top:20px;font-size:0.85rem;">Settings saved locally</p>
-</div>
-</body>
-</html>
-`;
-function showPage(page) {
-    const html = PAGES[page] || PAGES.home;
-    console.log('📄 Loading page:', page);
-    try {
-        const doc = sigmaIframe.contentDocument || sigmaIframe.contentWindow?.document;
-        if (doc) {
-            doc.open();
-            doc.write(html);
-            doc.close();
-            console.log('✅ Page loaded via document.write');
-        } else {
-            sigmaIframe.srcdoc = html;
-            console.log('✅ Page loaded via srcdoc');
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    // ============================================================
+    // STARS BACKGROUND
+    // ============================================================
+    (function initStars() {
+        const canvas = document.getElementById('stars-canvas');
+        const ctx = canvas.getContext('2d');
+        let w, h;
+        const stars = [];
+        const NUM_STARS = 60;
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
         }
-    } catch(e) {
-        console.error('❌ Error loading page:', e);
-        sigmaIframe.srcdoc = html;
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * w;
+                this.y = Math.random() * h;
+                this.size = Math.random() * 1.8 + 0.3;
+                this.baseOpacity = Math.random() * 0.3 + 0.05;
+                this.speed = Math.random() * 0.01 + 0.003;
+                this.phase = Math.random() * Math.PI * 2;
+                this.drift = (Math.random() - 0.5) * 0.03;
+            }
+            update() {
+                this.phase += this.speed;
+                this.x += this.drift + Math.sin(this.phase * 0.3) * 0.008;
+                this.y += Math.cos(this.phase * 0.2) * 0.008;
+                if (this.x < 0) this.x = w;
+                if (this.x > w) this.x = 0;
+                if (this.y < 0) this.y = h;
+                if (this.y > h) this.y = 0;
+            }
+            draw() {
+                const shine = 0.6 + 0.4 * Math.sin(this.phase);
+                const alpha = this.baseOpacity * shine;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * shine, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(212, 176, 255, ${alpha})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < NUM_STARS; i++) stars.push(new Star());
+
+        function animate() {
+            ctx.clearRect(0, 0, w, h);
+            stars.forEach(star => { star.update(); star.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    })();
+
+    // ============================================================
+    // SERVER-SIDE API CALLS
+    // ============================================================
+
+    const API_URL = window.location.origin + '/api';
+
+    async function registerUser(username, password) {
+        const res = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Registration failed');
+        return data;
     }
-    document.querySelectorAll('.taskbar-btn[data-src]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.src === page);
-    });
-}
-function goToSigmaHub() {
-    console.log('🚀 Launching Sigma Hub');
-    sigmaOverlay.classList.add('show');
-    taskbar.classList.add('show');
-    setTimeout(() => showPage('home'), 50);
-}
-unlockBtn.onclick = () => {
-    document.getElementById('loginOverlay').style.display = 'flex';
-};
-(function() {
-    const session = getSession();
-    if (session) {
-        const users = getUsers();
-        if (users[session]) {
-            document.getElementById('loginOverlay').style.display = 'none';
-            showToast('👋 Welcome back, ' + session + '!');
-            goToSigmaHub();
-            return;
+
+    async function loginUser(username, password) {
+        const res = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        return data;
+    }
+
+    async function sendMessage(username, text, to = 'public') {
+        const res = await fetch(`${API_URL}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, text, to })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Send failed');
+        return data;
+    }
+
+    async function getMessages() {
+        const res = await fetch(`${API_URL}/messages`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load messages');
+        return data;
+    }
+
+    async function getUsers() {
+        const res = await fetch(`${API_URL}/users`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load users');
+        return data;
+    }
+
+    // ============================================================
+    // SESSION MANAGEMENT
+    // ============================================================
+
+    const SESSION_KEY = 'sigma_session';
+
+    function getSession() { return localStorage.getItem(SESSION_KEY) || null; }
+    function setSession(u) { localStorage.setItem(SESSION_KEY, u); }
+    function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+    // ============================================================
+    // DOM ELEMENTS
+    // ============================================================
+
+    const loginBox = document.getElementById('loginBox');
+    const registerBox = document.getElementById('registerBox');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const regUser = document.getElementById('regUser');
+    const regPass = document.getElementById('regPass');
+    const registerBtn = document.getElementById('registerBtn');
+    const regError = document.getElementById('regError');
+    const showRegister = document.getElementById('showRegister');
+    const showLogin = document.getElementById('showLogin');
+    const authOverlay = document.getElementById('auth-overlay');
+    const messagesDiv = document.getElementById('messages');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const pmBtn = document.getElementById('pmBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const toast = document.getElementById('toast');
+    const chatUserDisplay = document.getElementById('chatUserDisplay');
+    const memberList = document.getElementById('memberList');
+    const revisionFlash = document.getElementById('revisionFlash');
+    const app = document.getElementById('app');
+    const adminPanel = document.getElementById('adminPanel');
+    const userList = document.getElementById('userList');
+    const adminToggle = document.getElementById('adminToggle');
+    const savedAccs = document.getElementById('saved-accounts');
+    const accCount = document.getElementById('accCount');
+    const accList = document.getElementById('accList');
+    let toastTimeout;
+    let currentUser = '';
+    let currentPM = null;
+    let messageInterval = null;
+
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ============================================================
+    // SAVED ACCOUNTS
+    // ============================================================
+
+    async function updateSavedAccounts() {
+        try {
+            const users = await getUsers();
+            const names = users || [];
+            accCount.textContent = names.length;
+            if (names.length === 0) {
+                accList.innerHTML = '<div class="acc" style="color:#6a4a8a;">No saved accounts</div>';
+                return;
+            }
+            accList.innerHTML = names.map(u =>
+                `<div class="acc">${escapeHtml(u)}</div>`
+            ).join('');
+        } catch (err) {
+            console.error('Failed to load users:', err);
+        }
+    }
+
+    // ============================================================
+    // AUTH - LOGIN / REGISTER
+    // ============================================================
+
+    showRegister.onclick = function(e) {
+        e.preventDefault();
+        loginBox.classList.add('hidden');
+        registerBox.classList.remove('hidden');
+        registerBox.className = 'slide-switch';
+        loginError.textContent = '';
+        regError.textContent = '';
+        setTimeout(() => { registerBox.className = ''; }, 400);
+    };
+
+    showLogin.onclick = function(e) {
+        e.preventDefault();
+        registerBox.classList.add('hidden');
+        loginBox.classList.remove('hidden');
+        loginBox.className = 'slide-switch-right';
+        loginError.textContent = '';
+        regError.textContent = '';
+        setTimeout(() => { loginBox.className = ''; }, 400);
+    };
+
+    registerBtn.onclick = async function() {
+        const user = regUser.value.trim();
+        const pass = regPass.value.trim();
+        regError.textContent = '';
+        if (!user || !pass) { regError.textContent = 'Fill all fields'; return; }
+        if (user.length < 2) { regError.textContent = 'Min 2 chars'; return; }
+        if (pass.length < 4) { regError.textContent = 'Min 4 chars'; return; }
+        try {
+            await registerUser(user, pass);
+            regError.textContent = '';
+            showToast('Account created! Login now.');
+            registerBox.classList.add('hidden');
+            loginBox.classList.remove('hidden');
+            loginBox.className = 'slide-switch-right';
+            loginUser.value = user;
+            loginPass.value = '';
+            setTimeout(() => { loginBox.className = ''; }, 400);
+            updateSavedAccounts();
+        } catch (err) {
+            regError.textContent = '❌ ' + err.message;
+        }
+    };
+
+    loginBtn.onclick = async function() {
+        const user = loginUser.value.trim();
+        const pass = loginPass.value.trim();
+        loginError.textContent = '';
+        if (!user || !pass) { loginError.textContent = 'Fill all fields'; return; }
+        if (getSession()) { showToast('Already logged in'); return; }
+        try {
+            await loginUser(user, pass);
+            setSession(user);
+            loginError.textContent = '';
+            authOverlay.classList.add('hidden');
+            showToast('Welcome, ' + user);
+            enterChat(user);
+        } catch (err) {
+            loginError.textContent = '❌ ' + err.message;
+        }
+    };
+
+    loginPass.onkeydown = function(e) { if (e.key === 'Enter') loginBtn.click(); };
+    regPass.onkeydown = function(e) { if (e.key === 'Enter') registerBtn.click(); };
+    msgInput.onkeydown = function(e) { if (e.key === 'Enter') sendBtn.click(); };
+
+    // ============================================================
+    // CHAT
+    // ============================================================
+
+    function isAdmin(username) { return username === 'admin'; }
+
+    async function renderMessages() {
+        try {
+            const allMsgs = await getMessages();
+            let msgs = allMsgs;
+            if (currentPM) {
+                msgs = allMsgs.filter(m =>
+                    (m.user === currentUser && m.to === currentPM) ||
+                    (m.user === currentPM && m.to === currentUser)
+                );
+            } else {
+                msgs = allMsgs.filter(m => !m.to || m.to === 'public');
+            }
+            if (msgs.length === 0) {
+                messagesDiv.innerHTML = `<div class="msg"><span class="user">System</span><span class="time">now</span><div class="text">${currentPM ? 'Private chat with ' + currentPM : 'No messages yet.'}</div></div>`;
+                return;
+            }
+            messagesDiv.innerHTML = msgs.map(m =>
+                `<div class="msg">
+                    <span class="user">${escapeHtml(m.user)}${m.to && m.to !== 'public' ? ' ➜ ' + escapeHtml(m.to) : ''}</span>
+                    <span class="time">${escapeHtml(m.time)}</span>
+                    <div class="text">${escapeHtml(m.text)}</div>
+                </div>`
+            ).join('');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        } catch (err) {
+            console.error('Render error:', err);
+        }
+    }
+
+    async function renderMembers() {
+        try {
+            const users = await getUsers();
+            const allUsers = users || [];
+            if (allUsers.length === 0) {
+                memberList.innerHTML = '<div style="color:#6a4a8a; font-size:10px;">No users</div>';
+                return;
+            }
+            memberList.innerHTML = allUsers.map(u => {
+                const isMe = u === currentUser;
+                return `<div class="member-item">
+                    <span class="name ${isMe ? 'me' : ''}">${escapeHtml(u)}${isMe ? ' (you)' : ''}</span>
+                    <div class="actions">
+                        ${isMe ? '' : `<button class="pm" onclick="startPM('${escapeHtml(u)}')">💬</button>`}
+                    </div>
+                </div>`;
+            }).join('');
+            // Admin panel - show users
+            if (isAdmin(currentUser)) {
+                adminPanel.classList.add('show');
+                const entries = allUsers.map(u => ({ username: u }));
+                userList.innerHTML = entries.length === 0 ? '<div style="color:#6a4a8a; font-size:10px;">No users</div>' :
+                    entries.map(({ username }) => `<div class="user-row"><span>${escapeHtml(username)}</span></div>`).join('');
+            } else {
+                adminPanel.classList.remove('show');
+            }
+        } catch (err) {
+            console.error('Render members error:', err);
+        }
+    }
+
+    function startPM(username) {
+        if (username === currentUser) { showToast('Cannot PM yourself'); return; }
+        currentPM = username;
+        pmBtn.textContent = 'PM: ' + username;
+        pmBtn.style.borderColor = '#a070d0';
+        renderMessages();
+        showToast('Private chat with ' + username);
+    }
+
+    pmBtn.onclick = function() {
+        if (currentPM) {
+            currentPM = null;
+            pmBtn.textContent = 'PM';
+            pmBtn.style.borderColor = 'rgba(122,58,170,0.2)';
+            renderMessages();
+            showToast('Back to public');
         } else {
+            showToast('Click a member\'s 💬 to PM');
+        }
+    };
+
+    async function sendMessageHandler() {
+        const text = msgInput.value.trim();
+        if (!text || !currentUser) return;
+        try {
+            await sendMessage(currentUser, text, currentPM || 'public');
+            msgInput.value = '';
+            await renderMessages();
+        } catch (err) {
+            showToast('❌ ' + err.message);
+        }
+    }
+
+    sendBtn.onclick = sendMessageHandler;
+
+    logoutBtn.onclick = function() {
+        if (confirm('Logout?')) {
             clearSession();
+            currentUser = '';
+            currentPM = null;
+            if (messageInterval) clearInterval(messageInterval);
+            authOverlay.classList.remove('hidden');
+            showToast('Logged out');
         }
-    }
-    document.getElementById('loginOverlay').style.display = 'flex';
-})();
-document.querySelectorAll('.taskbar-btn[data-src]').forEach(btn => {
-    btn.onclick = () => showPage(btn.dataset.src);
-});
-document.getElementById('closeTaskbar').onclick = () => {
-    taskbar.classList.toggle('hidden');
-};
-document.addEventListener('keydown', e => {
-    if (e.key === '\\') {
-        e.preventDefault();
-        taskbar.classList.toggle('hidden');
-    }
-    if (e.key === 'c' || e.key === 'C') {
-        e.preventDefault();
-        const win = window.open('about:blank', '_blank');
-        if (win) {
-            win.document.write('<html><head><title>Google</title></head><body style="background:#0a0015;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;border:2px solid #7a3aaa;"><h1 style="color:#d4b0ff;">Google</h1></body></html>');
-            win.document.close();
+    };
+
+    adminToggle.onclick = function() {
+        if (isAdmin(currentUser)) {
+            adminPanel.classList.toggle('show');
+        } else {
+            showToast('Admin only');
         }
-        window.close();
+    };
+
+    function enterChat(username) {
+        currentUser = username;
+        chatUserDisplay.textContent = username;
+        renderMessages();
+        renderMembers();
+        updateSavedAccounts();
+        if (messageInterval) clearInterval(messageInterval);
+        messageInterval = setInterval(async () => {
+            await renderMessages();
+            await renderMembers();
+        }, 3000);
     }
-});
-document.getElementById('cloakBtn').onclick = () => {
-    const win = window.open('about:blank', '_blank');
-    if (win) {
-        const html = document.documentElement.outerHTML;
-        win.document.write(html);
-        win.document.close();
-        window.close();
-    }
-};
-let userCount = 69420;
-setInterval(() => {
-    userCount += Math.floor(Math.random() * 6) - 3;
-    if (userCount < 69000) userCount = 69000;
-    if (userCount > 70000) userCount = 70000;
-    try {
-        const doc = sigmaIframe.contentDocument || sigmaIframe.contentWindow?.document;
-        if (doc) {
-            const span = doc.getElementById('userCount');
-            if (span) span.textContent = userCount;
+
+    // ============================================================
+    // SESSION CHECK
+    // ============================================================
+
+    (function() {
+        const session = getSession();
+        if (session) {
+            authOverlay.classList.add('hidden');
+            showToast('Welcome back, ' + session);
+            enterChat(session);
+            return;
         }
-    } catch(e) {}
-}, 3000);
-console.log('🔥 System ready. Login with admin/123456 or register new account.');
-console.log('📚 Users:', getUsers());
-</script>
+        authOverlay.classList.remove('hidden');
+    })();
+
+    // ============================================================
+    // INIT
+    // ============================================================
+
+    updateSavedAccounts();
+    console.log('🔥 Sigma Hub Chat ready (server-side).');
+    </script>
 </body>
 </html>
