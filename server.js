@@ -26,7 +26,7 @@ function writeMessages(msgs) {
     fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msgs, null, 2));
 }
 
-// --- Auth ---
+// ---- Auth ----
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password || username.length < 2 || password.length < 4) {
@@ -56,7 +56,7 @@ app.post('/api/login', (req, res) => {
     res.json({ message: 'Logged in!', username });
 });
 
-// --- Messages ---
+// ---- Messages ----
 app.post('/api/messages', (req, res) => {
     const { username, text, to } = req.body;
     if (!username || !text) {
@@ -83,7 +83,7 @@ app.get('/api/users', (req, res) => {
     res.json(Object.keys(users));
 });
 
-// --- Admin: Delete user ---
+// ---- Admin ----
 app.delete('/api/admin/users/:username', (req, res) => {
     const { username } = req.params;
     if (username === 'admin') {
@@ -95,14 +95,12 @@ app.delete('/api/admin/users/:username', (req, res) => {
     }
     delete users[username];
     writeUsers(users);
-    // Also remove their messages
     let msgs = readMessages();
     msgs = msgs.filter(m => m.user !== username);
     writeMessages(msgs);
     res.json({ message: 'User deleted' });
 });
 
-// --- Admin: Kick user (clear messages) ---
 app.delete('/api/admin/kick/:username', (req, res) => {
     const { username } = req.params;
     if (username === 'admin') {
@@ -111,7 +109,12 @@ app.delete('/api/admin/kick/:username', (req, res) => {
     let msgs = readMessages();
     msgs = msgs.filter(m => m.user !== username);
     writeMessages(msgs);
-    res.json({ message: 'User kicked (messages cleared)' });
+    res.json({ message: 'User kicked' });
+});
+
+app.delete('/api/admin/clear', (req, res) => {
+    writeMessages([]);
+    res.json({ message: 'Chat cleared' });
 });
 
 app.listen(PORT, () => {
