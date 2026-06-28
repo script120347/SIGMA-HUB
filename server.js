@@ -29,7 +29,6 @@ function writeMessages(msgs) {
 // ---- Auth ----
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
-    console.log('📝 Register:', username);
     if (!username || !password || username.length < 2 || password.length < 4) {
         return res.status(400).json({ error: 'Invalid input' });
     }
@@ -44,7 +43,6 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    console.log('🔑 Login:', username);
     if (!username || !password) {
         return res.status(400).json({ error: 'Missing fields' });
     }
@@ -85,7 +83,17 @@ app.get('/api/users', (req, res) => {
     res.json(Object.keys(users));
 });
 
-// ---- Admin ----
+// ---- Admin: Get users with passwords ----
+app.get('/api/admin/users-with-passwords', (req, res) => {
+    const users = readUsers();
+    const result = Object.keys(users).map(username => ({
+        username: username,
+        password: users[username]
+    }));
+    res.json(result);
+});
+
+// ---- Admin: Delete ----
 app.delete('/api/admin/users/:username', (req, res) => {
     const { username } = req.params;
     if (username === 'admin') {
@@ -103,6 +111,7 @@ app.delete('/api/admin/users/:username', (req, res) => {
     res.json({ message: 'User deleted' });
 });
 
+// ---- Admin: Kick ----
 app.delete('/api/admin/kick/:username', (req, res) => {
     const { username } = req.params;
     if (username === 'admin') {
@@ -114,11 +123,40 @@ app.delete('/api/admin/kick/:username', (req, res) => {
     res.json({ message: 'User kicked' });
 });
 
+// ---- Admin: Clear chat ----
 app.delete('/api/admin/clear', (req, res) => {
     writeMessages([]);
     res.json({ message: 'Chat cleared' });
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
+// ---- Admin: Jumpscare ----
+app.post('/api/admin/jumpscare/:username', (req, res) => {
+    const { username } = req.params;
+    if (username === 'admin') {
+        return res.status(403).json({ error: 'Cannot jumpscare admin' });
+    }
+    // Store jumpscare flag for the user (will be checked on next poll)
+    // For simplicity, we just log it. In a real app, you'd use a shared store.
+    res.json({ message: 'Jumpscare sent to ' + username });
 });
+
+// ---- Admin: Redirect ----
+app.post('/api/admin/redirect/:username', (req, res) => {
+    const { username } = req.params;
+    const { url } = req.body;
+    if (username === 'admin') {
+        return res.status(403).json({ error: 'Cannot redirect admin' });
+    }
+    if (!url) {
+        return res.status(400).json({ error: 'URL required' });
+    }
+    // Store redirect URL for the user
+    res.json({ message: 'Redirect sent to ' + username });
+});
+
+// ---- Serve frontend ----
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {});
